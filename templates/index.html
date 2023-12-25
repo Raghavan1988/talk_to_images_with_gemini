@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+    <title>Text and Image Upload</title>
+    <!-- Include Bootstrap CSS for styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Text and Images</h1>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <label for="text">Text:</label>
+            <input type="text" name="text" id="text" size="100" required><br><br>
+            <label for="file">Choose Images:</label>
+            <input type="file" name="file[]" multiple accept="image/*"><br><br>
+            <input type="submit" value="Submit">
+        </form>
+
+        <!-- Display response text if available -->
+        {% if response_text %}
+            <div class="my-3">
+                <h3>Response:</h3>
+                <p>{{ response_text }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Image grid if images are available -->
+        {% if image_urls %}
+            <div class="row">
+                {% for image_url in image_urls %}
+                    <div class="col-md-4"> <!-- Adjust the column size as needed -->
+                        <h3>Image {{ loop.index }}</h3>
+                        <img src="{{ image_url }}" class="img-fluid mb-3">
+                    </div>
+                    {% if loop.index % 3 == 0 %} <!-- Creating a new row after every 3 images -->
+                        </div><div class="row">
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Include Bootstrap JS for responsiveness -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>
