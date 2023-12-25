@@ -1,23 +1,22 @@
+## Import necessary libraries and modules
 from flask import Flask, request, render_template
 import os
 from werkzeug.utils import secure_filename
 from openai import OpenAI
-
-
 import google.generativeai as genai
-
-
 import PIL.Image
 
+## Set up Environment Variables for API KEYS
+## You need OPEN AI KEY for Trulens EVAL and GOOGLE API KEY for Gemin 
 os.environ["OPENAI_API_KEY"] = ""
 GOOGLE_API_KEY=""
 
-
-
+## Initialize OpenAI and Gemini API
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-pro-vision')
 
+## Create a Flask Application instance
 app = Flask(__name__)
 from trulens_eval import Feedback, Tru, OpenAI
 tru = Tru()
@@ -25,6 +24,8 @@ tru.reset_database()
 
 openai_provider = OpenAI()
 
+
+# Function to translate text to English using OpenAI's model
 def translate_to_english(text):
     response = client.chat.completions.create(model = "gpt-3.5-turbo",
     messages = [
@@ -33,6 +34,7 @@ def translate_to_english(text):
     ],stream = False, )
     return response.choices[0].message.content
 
+# Function to interact with GPT-3.5 model for Trulens eval
 def gpt35_turbo(prompt):
     response =  client.chat.completions.create(model = "gpt-3.5-turbo",
     messages = [
@@ -47,7 +49,7 @@ f_maliciousness = Feedback(openai_provider.maliciousness_with_cot_reasons, highe
 feedbacks = [f_hate, f_violent, f_selfharm, f_maliciousness]
 
 
-
+## Setups Trulens EVAL
 from trulens_eval import TruBasicApp
 gpt35_turbo_recorder = TruBasicApp(gpt35_turbo, app_id="gpt-3.5-turbo", feedbacks=feedbacks)
 tru.run_dashboard()
@@ -68,6 +70,7 @@ def allowed_file(filename):
 from spire.pdf import PdfDocument
 from spire.pdf.common import ImageFormat
 
+## Function to extract images from all PDFs
 def extract_images_from_pdf(pdf_path, output_directory):
     # Load the PDF document
     doc = PdfDocument()
@@ -96,6 +99,7 @@ def extract_images_from_pdf(pdf_path, output_directory):
 # Example usage
 output_directory = 'static/extracted_images'  # Current directory
 
+# Function to get response from Gemini AI model
 def get_gemini_response(image, text):
     prompt = """
         The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
@@ -118,12 +122,6 @@ def get_gemini_response(image, text):
     context_plus_prompt = [prompt] + [image]
     response = model.generate_content(context_plus_prompt, stream=False)
     response_text = response.text
-
-    
-
-
-
-
 
     return response_text
 
@@ -162,6 +160,8 @@ def index():
                         img = PIL.Image.open(image_file)
                         imgs.append(img)
 
+
+        ## Since Gemini is NOT enabled for non english, translate using GPT 3.5 if necessary
         text = translate_to_english(text)
 
         prompt = """
@@ -180,12 +180,13 @@ def index():
         response = model.generate_content([prompt] + imgs, stream=False)
         response_text = response.text
 
+        ## Record interactions for Trulens evaluation
+        ## Since Gemini is not a provider, we use GPT 3.5 as a provider to evaluate the response
         with gpt35_turbo_recorder as recording:
             gpt35_turbo_recorder.app(prompt)
             gpt35_turbo_recorder.app(response_text)
         
         # Pass both image URLs and response text to the template
-        print(img_urls)
         return render_template('index.html', image_urls=img_urls, response_text=response_text)
 
     return render_template('index.html')
